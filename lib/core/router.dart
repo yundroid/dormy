@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/academics/assessments_page.dart';
+import '../features/academics/books_page.dart';
+import '../features/academics/exams_page.dart';
 import '../features/admin/admin_panel_page.dart';
 import '../features/admin/groups_page.dart';
 import '../features/admin/modules_page.dart';
@@ -39,7 +42,8 @@ String? resolveRedirect({required SessionStatus status, required UserRole? role,
       }
       if (location.startsWith('/tenants') && role != UserRole.superadmin) return home;
       if (location.startsWith('/admin') && role != UserRole.admin) return home;
-      if ((location.startsWith('/home') || location.startsWith('/module')) && role == UserRole.superadmin) return home;
+      // Sistem yöneticisi yurt verisine erişmez: sadece yurtlar ve profil
+      if (role == UserRole.superadmin && !location.startsWith('/tenants') && !location.startsWith('/profile')) return home;
       return null;
   }
 }
@@ -62,6 +66,17 @@ GoRouter buildRouter() {
       GoRoute(path: '/set-password', builder: (_, _) => const SetPasswordPage()),
       GoRoute(path: '/blocked', builder: (_, _) => const BlockedPage()),
       GoRoute(path: '/module/:id', builder: (_, s) => EntryPage(moduleId: s.pathParameters['id']!)),
+      GoRoute(path: '/exams', builder: (_, _) => const ExamsPage(), routes: [
+        GoRoute(path: ':id', builder: (_, s) => ExamDetailPage(examId: s.pathParameters['id']!)),
+      ]),
+      GoRoute(path: '/tests', builder: (_, _) => const AssessmentsPage(kind: AssessmentKind.test), routes: [
+        GoRoute(path: ':id', builder: (_, s) => AssessmentDetailPage(kind: AssessmentKind.test, assessmentId: s.pathParameters['id']!)),
+      ]),
+      GoRoute(path: '/trials', builder: (_, _) => const AssessmentsPage(kind: AssessmentKind.trial), routes: [
+        GoRoute(path: 'new', builder: (_, _) => const TrialFormPage()),
+        GoRoute(path: ':id', builder: (_, s) => AssessmentDetailPage(kind: AssessmentKind.trial, assessmentId: s.pathParameters['id']!)),
+      ]),
+      GoRoute(path: '/books', builder: (_, _) => const BooksPage()),
       ShellRoute(
         builder: (context, state, child) => HomeShell(location: state.matchedLocation, child: child),
         routes: [

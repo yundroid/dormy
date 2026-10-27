@@ -250,7 +250,10 @@ class _ModuleFormPageState extends ConsumerState<ModuleFormPage> {
                 DropdownButtonFormField<ModuleValueType>(
                   initialValue: _type,
                   decoration: const InputDecoration(labelText: 'Değerlendirme tipi'),
-                  items: [for (final t in ModuleValueType.values) DropdownMenuItem(value: t, child: Text(t.label))],
+                  items: [
+                    for (final t in ModuleValueType.values.where((t) => t.isEntryType || t == _type))
+                      DropdownMenuItem(value: t, child: Text(t.label)),
+                  ],
                   onChanged: _structureEditable ? (v) => setState(() => _type = v!) : null,
                 ),
                 if (_type == ModuleValueType.score) ...[
@@ -298,6 +301,7 @@ class _ModuleFormPageState extends ConsumerState<ModuleFormPage> {
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ),
+                if (_type.isEntryType) ...[
                 const SizedBox(height: 20),
                 Row(
                   children: [
@@ -335,6 +339,7 @@ class _ModuleFormPageState extends ConsumerState<ModuleFormPage> {
                       ],
                     ),
                   ),
+                ],
                 const SizedBox(height: 12),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,

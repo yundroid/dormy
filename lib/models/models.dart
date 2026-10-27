@@ -1,6 +1,7 @@
 import '../core/formatters.dart';
 import 'enums.dart';
 
+export 'academics.dart';
 export 'enums.dart';
 
 DateTime? _ts(Object? v) => v == null ? null : DateTime.parse(v as String);
@@ -276,7 +277,14 @@ class DormModule {
         ModuleValueType.attendance => 'Var / Yok / İzinli',
         ModuleValueType.score => '$minValue – $maxValue puan',
         ModuleValueType.yesNo => 'Evet / Hayır',
+        ModuleValueType.exam => '0 – 100 not',
+        ModuleValueType.test => 'Doğru / yanlış · net',
+        ModuleValueType.trialExam => 'Çok dersli · net',
+        ModuleValueType.book => 'Okuma takibi',
       };
+
+  /// Kontrol panelinde tıklanınca açılacak adres
+  String get route => valueType.route ?? '/module/$id';
 
   factory DormModule.fromJson(Map<String, dynamic> j) => DormModule(
         id: j['id'] as String,

@@ -34,6 +34,7 @@ List<ValueOption> valueOptions(DormModule m) => switch (m.valueType) {
       ModuleValueType.score => m.maxValue! - m.minValue! <= 9
           ? [for (var v = m.maxValue!; v >= m.minValue!; v--) ValueOption(v, '$v')]
           : [ValueOption(m.maxValue!, '${m.maxValue}')],
+      _ => const [],
     };
 
 class EntrySummary {
@@ -54,8 +55,7 @@ EntrySummary summarize(DormModule m, Iterable<Object?> values) {
         counts[c] = (counts[c] ?? 0) + 1;
       }
       return EntrySummary(filled: filled.length, attendance: counts);
-    case ModuleValueType.score:
-    case ModuleValueType.yesNo:
+    default:
       final nums = filled.whereType<num>().toList();
       final avg = nums.isEmpty ? null : nums.reduce((a, b) => a + b) / nums.length;
       return EntrySummary(filled: filled.length, average: m.valueType == ModuleValueType.score ? avg : null);

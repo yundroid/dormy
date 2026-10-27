@@ -78,23 +78,39 @@ enum ModuleScope {
 enum ModuleValueType {
   attendance('Yoklama (Var / Yok / İzinli)'),
   score('Puan'),
-  yesNo('Evet / Hayır');
+  yesNo('Evet / Hayır'),
+  // Kendi ekranı olan özel modüller (günlük giriş almaz)
+  exam('Yazılı'),
+  test('Test'),
+  trialExam('Deneme sınavı'),
+  book('Kitap takibi');
 
   const ModuleValueType(this.label);
   final String label;
+
+  /// Günlük giriş ekranını kullanan tipler (yurda özel modüllerde seçilebilir)
+  bool get isEntryType => this == attendance || this == score || this == yesNo;
+
+  /// Özel modülün ekran adresi
+  String? get route => switch (this) {
+        exam => '/exams',
+        test => '/tests',
+        trialExam => '/trials',
+        book => '/books',
+        _ => null,
+      };
 
   String get dbValue => switch (this) {
         attendance => 'attendance',
         score => 'score',
         yesNo => 'yes_no',
+        exam => 'exam',
+        test => 'test',
+        trialExam => 'trial_exam',
+        book => 'book',
       };
 
-  static ModuleValueType parse(String v) => switch (v) {
-        'attendance' => attendance,
-        'score' => score,
-        'yes_no' => yesNo,
-        _ => throw ArgumentError(v),
-      };
+  static ModuleValueType parse(String v) => values.firstWhere((t) => t.dbValue == v, orElse: () => throw ArgumentError(v));
 }
 
 enum AttendanceChoice {

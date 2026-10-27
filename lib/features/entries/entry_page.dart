@@ -519,7 +519,7 @@ class _ValueInput extends StatelessWidget {
           selected: {?selected},
           onSelectionChanged: (s) => onChanged(s.isEmpty ? null : s.first),
         );
-      case ModuleValueType.score:
+      default:
         final min = module.minValue!, max = module.maxValue!;
         final current = value is num ? (value as num) : null;
         if (max - min <= 9) {

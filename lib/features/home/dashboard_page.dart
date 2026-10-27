@@ -97,7 +97,7 @@ class _ModuleCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context.push('/module/${module.id}'),
+        onTap: () => context.push(module.route),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(

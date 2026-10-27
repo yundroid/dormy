@@ -18,7 +18,9 @@ Gereksinim analizi: [`docs/ANALIZ_RAPORU.md`](docs/ANALIZ_RAPORU.md)
 ## Faz durumu
 
 - [x] **Faz 1 – Temel:** giriş / şifremi unuttum / yurt kaydı, davetle öğretmen, superadmin paneli, yönetim paneli (öğretmen, öğrenci, etüt & dahili gruplar, ders/konu, modüller), modül motoru ve veri giriş ekranı (yoklama 5 vakit, yatak-dolap, etüt, dahili ders, yurda özel modüller)
-- [ ] **Faz 2 – Akademik:** yazılılar, testler (net = D − Y/3, boş otomatik), deneme sınavları (çok dersli), kitap takibi, paylaşılabilir sıralı listeler (isim gizleme seçeneği)
+- [x] **Faz 2 – Akademik:** yazılılar (0-100), testler (soru sayısı + D/Y, boş otomatik, net = D − Y/3), deneme sınavları
+  (çok bölümlü; TYT / AYT / LGS şablonları), kitap takibi (ortak kitap listesi, atama, sayfa ilerlemesi, bitirilenler),
+  veliye paylaşılabilir sıralı listeler (PNG görsel / PDF; tam isim, baş harfler veya tek öğrenci seçenekleri)
 - [ ] **Faz 3 – Raporlar:** Öğrencilerim (yüzdelik karne), yurt geneli raporlar ve sıralamalar
 - [ ] **Faz 4:** bildirimler, Excel dışa aktarım, dönem arşivi
 
@@ -77,6 +79,10 @@ flutter build web --dart-define-from-file=env.json      # web yayını
   vakit isimlerini düzenleyebilir veya yurda özel yeni modül ekleyebilir (kapsam: yurt geneli / etüt grubu / dahili grup;
   tip: yoklama / puan aralığı / evet-hayır; günlük oturum sayısı; rapor ağırlığı).
 - **Grup üyelik geçmişi** tutulur: öğrenci grup değiştirdiğinde eski üyelik `end_date` ile kapanır.
+- **Akademik modüller** (yazılı, test, deneme, kitap) etüt grubuna özeldir; yazma yetkisi `can_manage_group()` /
+  `can_manage_student_books()` ile, modülün açık olması `feature_enabled()` ile sunucuda kontrol edilir.
+  Test, tek bölümlü bir "ölçme"dir; deneme sınavı ile aynı tabloları (`assessments`, `assessment_sections`,
+  `assessment_results`) kullanır. Net, veritabanında hesaplanan bir sütundur.
 - **7 gün kuralı** ve yurt yerel tarihi (`Europe/Istanbul`) sunucuda `can_write_entry()` içinde uygulanır.
 
 ## Testler
@@ -98,6 +104,8 @@ lib/
     auth/        giriş, yurt kaydı, şifremi unuttum, şifre belirleme
     home/        rol bazlı kabuk ve kontrol paneli
     entries/     ortak modül veri giriş ekranı
+    academics/   yazılılar, testler, denemeler, kitap takibi
+    share/       veliye paylaşım (PNG / PDF, isim gizleme)
     admin/       yönetim paneli ekranları
     superadmin/  yurt listesi ve detayı
     profile/     profil, şifre değiştirme

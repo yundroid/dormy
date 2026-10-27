@@ -16,6 +16,9 @@ const moduleIcons = <String, IconData>{
   'restaurant': Icons.restaurant_outlined,
   'schedule': Icons.schedule,
   'favorite': Icons.favorite_border,
+  'quiz': Icons.quiz_outlined,
+  'assignment': Icons.assignment_outlined,
+  'library': Icons.local_library_outlined,
 };
 
 IconData moduleIcon(String name) => moduleIcons[name] ?? Icons.checklist;
