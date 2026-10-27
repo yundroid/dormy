@@ -1,0 +1,16 @@
+workflows:
+  android-apk-workflow:
+    name: Android APK Build Workflow
+    max_build_duration: 60
+    instance_type: mac_mini_m2 # İsterseniz linux da seçebilirsiniz
+    environment:
+      flutter: stable
+    scripts:
+      - name: Bağımlılıkları yükle (Get packages)
+        script: |
+          flutter packages get
+      - name: Release APK oluştur
+        script: |
+          flutter build apk --release
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
