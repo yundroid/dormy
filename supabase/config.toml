@@ -1,0 +1,15 @@
+# Supabase CLI yapılandırması (supabase init çıktısının sadeleştirilmiş hali)
+project_id = "dormy"
+
+[api]
+schemas = ["public"]
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000", "com.dormy.dormy://auth-callback"]
+
+[auth.email]
+enable_confirmations = true
+
+[functions.invite-user]
+verify_jwt = true

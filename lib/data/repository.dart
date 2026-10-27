@@ -1,0 +1,344 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../core/env.dart';
+import '../core/formatters.dart';
+import '../core/session.dart';
+import '../core/supabase.dart';
+import '../models/models.dart';
+
+List<Map<String, dynamic>> _rows(Object? data) => (data as List).cast<Map<String, dynamic>>();
+
+String? _blank(String? s) => (s == null || s.trim().isEmpty) ? null : s.trim();
+
+// ---------------------------------------------------------------------------
+// Okuma sağlayıcıları (RLS sayesinde sadece kullanıcının yurdunun verisi gelir)
+// ---------------------------------------------------------------------------
+
+final modulesProvider = FutureProvider<List<DormModule>>((ref) async {
+  final data = await db.from('modules').select().order('sort_order').order('name');
+  return _rows(data).map(DormModule.fromJson).toList();
+});
+
+/// Kullanıcının öğretmeni olduğu grup türleri (gruba özel modülleri göstermek için).
+final myGroupKindsProvider = FutureProvider<Set<GroupKind>>((ref) async {
+  final data = await db.from('group_teachers').select('groups!inner(kind)').eq('teacher_id', currentUserId!);
+  return _rows(data).map((r) => GroupKind.parse((r['groups'] as Map)['kind'] as String)).toSet();
+});
+
+final moduleStudentsProvider = FutureProvider.autoDispose.family<List<ModuleStudent>, String>((ref, moduleId) async {
+  final data = await db.rpc('module_students', params: {'p_module': moduleId});
+  return _rows(data).map(ModuleStudent.fromJson).toList();
+});
+
+typedef EntryKey = ({String moduleId, DateTime date});
+
+final entriesProvider = FutureProvider.autoDispose.family<List<Entry>, EntryKey>((ref, key) async {
+  final data = await db
+      .from('entries')
+      .select('id, student_id, session, value, choice, recorded_by, updated_at')
+      .eq('module_id', key.moduleId)
+      .eq('entry_date', isoDate(key.date));
+  return _rows(data).map(Entry.fromJson).toList();
+});
+
+/// Yurdun yönetici ve öğretmenleri
+final staffProvider = FutureProvider<List<Profile>>((ref) async {
+  final data = await db
+      .from('profiles')
+      .select()
+      .eq('tenant_id', session.ctx.tenantId)
+      .order('role')
+      .order('full_name');
+  return _rows(data).map(Profile.fromJson).toList();
+});
+
+final studentsProvider = FutureProvider<List<Student>>((ref) async {
+  final data = await db.from('students').select().order('first_name').order('last_name');
+  return _rows(data).map(Student.fromJson).toList();
+});
+
+final groupsProvider = FutureProvider<List<Group>>((ref) async {
+  final data = await db.from('groups').select().order('name');
+  return _rows(data).map(Group.fromJson).toList();
+});
+
+/// Aktif grup üyelikleri
+final membershipsProvider = FutureProvider<List<Membership>>((ref) async {
+  final data = await db.from('group_students').select('group_id, student_id, kind').isFilter('end_date', null);
+  return _rows(data).map(Membership.fromJson).toList();
+});
+
+/// groupId -> öğretmen id'leri
+final groupTeachersProvider = FutureProvider<Map<String, Set<String>>>((ref) async {
+  final data = await db.from('group_teachers').select('group_id, teacher_id');
+  final map = <String, Set<String>>{};
+  for (final r in _rows(data)) {
+    map.putIfAbsent(r['group_id'] as String, () => {}).add(r['teacher_id'] as String);
+  }
+  return map;
+});
+
+final subjectsProvider = FutureProvider<List<Subject>>((ref) async {
+  final data = await db
+      .from('subjects')
+      .select('id, name, sort_order, topics(id, subject_id, name, sort_order)')
+      .order('sort_order')
+      .order('name');
+  return _rows(data).map(Subject.fromJson).toList();
+});
+
+// Superadmin
+final tenantOverviewProvider = FutureProvider<List<TenantOverview>>((ref) async {
+  final data = await db.rpc('tenant_overview');
+  return _rows(data).map(TenantOverview.fromJson).toList();
+});
+
+final tenantAdminsProvider = FutureProvider.autoDispose.family<List<Profile>, String>((ref, tenantId) async {
+  final data = await db.from('profiles').select().eq('tenant_id', tenantId).eq('role', 'admin').order('full_name');
+  return _rows(data).map(Profile.fromJson).toList();
+});
+
+// ---------------------------------------------------------------------------
+// Yazma işlemleri
+// ---------------------------------------------------------------------------
+
+class Repo {
+  static String get _tenantId => session.ctx.tenantId;
+
+  // ---- Kimlik
+  static Future<void> signIn(String email, String password) =>
+      db.auth.signInWithPassword(email: email.trim(), password: password);
+
+  /// "Hesap oluştur": yeni yurt kaydı. Kayıt olan kişi yurdun ilk yöneticisi olur.
+  static Future<bool> registerTenant({
+    required String email,
+    required String password,
+    required String fullName,
+    required String tenantName,
+    String? city,
+    String? phone,
+  }) async {
+    final res = await db.auth.signUp(
+      email: email.trim(),
+      password: password,
+      emailRedirectTo: _blank(Env.authRedirectUrl),
+      data: {
+        'signup_type': 'tenant',
+        'full_name': fullName.trim(),
+        'tenant_name': tenantName.trim(),
+        'city': _blank(city),
+        'phone': _blank(phone),
+      },
+    );
+    // E-posta doğrulaması açıksa oturum gelmez.
+    return res.session != null;
+  }
+
+  static Future<void> sendPasswordReset(String email) =>
+      db.auth.resetPasswordForEmail(email.trim(), redirectTo: _blank(Env.authRedirectUrl));
+
+  static Future<void> updatePassword(String password) async {
+    await db.auth.updateUser(UserAttributes(password: password));
+  }
+
+  // ---- Davet (Edge Function)
+  static Future<void> invite({
+    required String tenantId,
+    required String email,
+    required String fullName,
+    String? phone,
+    required UserRole role,
+  }) async {
+    await db.functions.invoke('invite-user', body: {
+      'tenant_id': tenantId,
+      'email': email.trim(),
+      'full_name': fullName.trim(),
+      'phone': _blank(phone),
+      'role': role.name,
+      if (_blank(Env.authRedirectUrl) != null) 'redirect_to': Env.authRedirectUrl,
+    });
+  }
+
+  static Future<void> updateProfile(String id, {required String fullName, String? phone}) async {
+    await db.from('profiles').update({'full_name': fullName.trim(), 'phone': _blank(phone)}).eq('id', id);
+  }
+
+  static Future<void> setProfileStatus(String id, AccountStatus status) async {
+    await db.from('profiles').update({'status': status.name}).eq('id', id);
+  }
+
+  // ---- Öğrenciler
+  static Future<String> saveStudent({
+    String? id,
+    required String firstName,
+    required String lastName,
+    String? schoolGrade,
+    String? roomNo,
+    String? phone,
+    String? guardianName,
+    String? guardianPhone,
+    String? notes,
+    required StudentStatus status,
+  }) async {
+    final payload = {
+      'tenant_id': _tenantId,
+      'first_name': firstName.trim(),
+      'last_name': lastName.trim(),
+      'school_grade': _blank(schoolGrade),
+      'room_no': _blank(roomNo),
+      'phone': _blank(phone),
+      'guardian_name': _blank(guardianName),
+      'guardian_phone': _blank(guardianPhone),
+      'notes': _blank(notes),
+      'status': status.name,
+    };
+    if (id == null) {
+      final row = await db.from('students').insert(payload).select('id').single();
+      return row['id'] as String;
+    }
+    await db.from('students').update(payload).eq('id', id);
+    return id;
+  }
+
+  static Future<void> deleteStudent(String id) => db.from('students').delete().eq('id', id);
+
+  static Future<void> assignStudentGroup(String studentId, GroupKind kind, String? groupId) =>
+      db.rpc('assign_student_group', params: {'p_student': studentId, 'p_kind': kind.name, 'p_group': groupId});
+
+  // ---- Gruplar
+  static Future<void> saveGroup({String? id, required GroupKind kind, required String name, String? description}) async {
+    final payload = {'tenant_id': _tenantId, 'kind': kind.name, 'name': name.trim(), 'description': _blank(description)};
+    if (id == null) {
+      await db.from('groups').insert(payload);
+    } else {
+      await db.from('groups').update(payload).eq('id', id);
+    }
+  }
+
+  static Future<void> deleteGroup(String id) => db.from('groups').delete().eq('id', id);
+
+  static Future<void> setGroupArchived(String id, bool archived) =>
+      db.from('groups').update({'is_archived': archived}).eq('id', id);
+
+  static Future<void> setGroupTeachers(String groupId, Set<String> before, Set<String> after) async {
+    final removed = before.difference(after);
+    final added = after.difference(before);
+    if (removed.isNotEmpty) {
+      await db.from('group_teachers').delete().eq('group_id', groupId).inFilter('teacher_id', removed.toList());
+    }
+    if (added.isNotEmpty) {
+      await db.from('group_teachers').insert([
+        for (final t in added) {'tenant_id': _tenantId, 'group_id': groupId, 'teacher_id': t},
+      ]);
+    }
+  }
+
+  // ---- Dersler / konular
+  static Future<void> saveSubject({String? id, required String name, int sortOrder = 0}) async {
+    final payload = {'tenant_id': _tenantId, 'name': name.trim(), 'sort_order': sortOrder};
+    if (id == null) {
+      await db.from('subjects').insert(payload);
+    } else {
+      await db.from('subjects').update(payload).eq('id', id);
+    }
+  }
+
+  static Future<void> deleteSubject(String id) => db.from('subjects').delete().eq('id', id);
+
+  static Future<void> saveTopic({String? id, required String subjectId, required String name, int sortOrder = 0}) async {
+    final payload = {'tenant_id': _tenantId, 'subject_id': subjectId, 'name': name.trim(), 'sort_order': sortOrder};
+    if (id == null) {
+      await db.from('topics').insert(payload);
+    } else {
+      await db.from('topics').update(payload).eq('id', id);
+    }
+  }
+
+  static Future<void> deleteTopic(String id) => db.from('topics').delete().eq('id', id);
+
+  // ---- Modüller
+  static Future<void> saveModule({
+    String? id,
+    required String name,
+    String? description,
+    required String icon,
+    required ModuleScope scope,
+    required ModuleValueType valueType,
+    int? minValue,
+    int? maxValue,
+    required List<String> sessions,
+    required bool includeInReports,
+    required double weight,
+    bool? isActive,
+  }) async {
+    final payload = <String, dynamic>{
+      'name': name.trim(),
+      'description': _blank(description),
+      'icon': icon,
+      'sessions': sessions,
+      'include_in_reports': includeInReports,
+      'weight': weight,
+      'is_active': ?isActive,
+    };
+    if (id == null) {
+      await db.from('modules').insert({
+        ...payload,
+        'tenant_id': _tenantId,
+        'scope': scope.dbValue,
+        'value_type': valueType.dbValue,
+        'min_value': valueType == ModuleValueType.score ? minValue : null,
+        'max_value': valueType == ModuleValueType.score ? maxValue : null,
+      });
+    } else {
+      await db.from('modules').update(payload).eq('id', id);
+    }
+  }
+
+  static Future<void> setModuleActive(String id, bool active) =>
+      db.from('modules').update({'is_active': active}).eq('id', id);
+
+  static Future<void> deleteModule(String id) => db.from('modules').delete().eq('id', id);
+
+  // ---- Girişler
+  /// [changes]: öğrenci id -> yeni değer (null = kaydı sil)
+  static Future<void> saveEntries({
+    required DormModule module,
+    required DateTime date,
+    required int sessionIndex,
+    required Map<String, Object?> changes,
+  }) async {
+    final upserts = <Map<String, dynamic>>[];
+    final deletes = <String>[];
+    changes.forEach((studentId, v) {
+      if (v == null) {
+        deletes.add(studentId);
+        return;
+      }
+      upserts.add({
+        'module_id': module.id,
+        'student_id': studentId,
+        'entry_date': isoDate(date),
+        'session': sessionIndex,
+        'value': v is num ? v : null,
+        'choice': v is String ? v : null,
+      });
+    });
+    if (upserts.isNotEmpty) {
+      await db.from('entries').upsert(upserts, onConflict: 'module_id,student_id,entry_date,session');
+    }
+    if (deletes.isNotEmpty) {
+      await db
+          .from('entries')
+          .delete()
+          .eq('module_id', module.id)
+          .eq('entry_date', isoDate(date))
+          .eq('session', sessionIndex)
+          .inFilter('student_id', deletes);
+    }
+  }
+
+  // ---- Superadmin
+  static Future<void> updateTenant(String id, Map<String, dynamic> values) =>
+      db.from('tenants').update(values).eq('id', id);
+}
