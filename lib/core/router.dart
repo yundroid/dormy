@@ -15,6 +15,8 @@ import '../features/entries/entry_page.dart';
 import '../features/home/dashboard_page.dart';
 import '../features/home/home_shell.dart';
 import '../features/profile/profile_page.dart';
+import '../features/reports/my_students_page.dart';
+import '../features/reports/reports_page.dart';
 import '../features/superadmin/tenants_page.dart';
 import '../models/models.dart';
 import 'session.dart';
@@ -41,7 +43,7 @@ String? resolveRedirect({required SessionStatus status, required UserRole? role,
         return home;
       }
       if (location.startsWith('/tenants') && role != UserRole.superadmin) return home;
-      if (location.startsWith('/admin') && role != UserRole.admin) return home;
+      if ((location.startsWith('/admin') || location.startsWith('/reports')) && role != UserRole.admin) return home;
       // Sistem yöneticisi yurt verisine erişmez: sadece yurtlar ve profil
       if (role == UserRole.superadmin && !location.startsWith('/tenants') && !location.startsWith('/profile')) return home;
       return null;
@@ -81,6 +83,8 @@ GoRouter buildRouter() {
         builder: (context, state, child) => HomeShell(location: state.matchedLocation, child: child),
         routes: [
           GoRoute(path: '/home', builder: (_, _) => const DashboardPage()),
+          GoRoute(path: '/my-students', builder: (_, _) => const MyStudentsPage()),
+          GoRoute(path: '/reports', builder: (_, _) => const ReportsPage()),
           GoRoute(
             path: '/admin',
             builder: (_, _) => const AdminPanelPage(),

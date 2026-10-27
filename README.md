@@ -21,7 +21,8 @@ Gereksinim analizi: [`docs/ANALIZ_RAPORU.md`](docs/ANALIZ_RAPORU.md)
 - [x] **Faz 2 – Akademik:** yazılılar (0-100), testler (soru sayısı + D/Y, boş otomatik, net = D − Y/3), deneme sınavları
   (çok bölümlü; TYT / AYT / LGS şablonları), kitap takibi (ortak kitap listesi, atama, sayfa ilerlemesi, bitirilenler),
   veliye paylaşılabilir sıralı listeler (PNG görsel / PDF; tam isim, baş harfler veya tek öğrenci seçenekleri)
-- [ ] **Faz 3 – Raporlar:** Öğrencilerim (yüzdelik karne), yurt geneli raporlar ve sıralamalar
+- [x] **Faz 3 – Raporlar:** Öğrencilerim (tarih aralığına göre yüzdelik durum, öğrenci karnesi, veliye paylaşım),
+  yönetici raporları (yurt geneli / grup bazlı; genel başarı ve her modül için en iyi / en zayıf öğrenciler, tam sıralama)
 - [ ] **Faz 4:** bildirimler, Excel dışa aktarım, dönem arşivi
 
 ## Kurulum
@@ -83,6 +84,10 @@ flutter build web --dart-define-from-file=env.json      # web yayını
   `can_manage_student_books()` ile, modülün açık olması `feature_enabled()` ile sunucuda kontrol edilir.
   Test, tek bölümlü bir "ölçme"dir; deneme sınavı ile aynı tabloları (`assessments`, `assessment_sections`,
   `assessment_results`) kullanır. Net, veritabanında hesaplanan bir sütundur.
+- **Raporlar** tek bir SQL fonksiyonundan (`student_report`) gelir. Yüzde kuralları: yoklama = var / (var + yok),
+  izinli sayılmaz; puan = ortalama / en yüksek puan; yazılı = not ortalaması; test ve deneme = toplam net / toplam soru;
+  kitapta yüzde yok, bitirilen kitap ve sayfa sayısı. Genel başarı, modül ağırlıklarıyla ortalamadır.
+  Sıralamada, en çok kaydı olan öğrencinin yarısından az kaydı olanlar listeye alınmaz (tek kayıtla birinci olunmaz).
 - **7 gün kuralı** ve yurt yerel tarihi (`Europe/Istanbul`) sunucuda `can_write_entry()` içinde uygulanır.
 
 ## Testler
@@ -106,6 +111,7 @@ lib/
     entries/     ortak modül veri giriş ekranı
     academics/   yazılılar, testler, denemeler, kitap takibi
     share/       veliye paylaşım (PNG / PDF, isim gizleme)
+    reports/     Öğrencilerim, öğrenci karnesi, yönetici raporları
     admin/       yönetim paneli ekranları
     superadmin/  yurt listesi ve detayı
     profile/     profil, şifre değiştirme

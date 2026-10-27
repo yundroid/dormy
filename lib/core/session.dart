@@ -111,6 +111,13 @@ class SessionController extends ChangeNotifier {
     await refresh();
   }
 
+  /// Sadece testler için: sunucuya gitmeden oturum bağlamı atar.
+  @visibleForTesting
+  void debugSetContext(UserContext? c) {
+    _context = c;
+    status = c == null ? SessionStatus.signedOut : SessionStatus.ready;
+  }
+
   Future<void> signOut() async {
     _recovering = false;
     await db.auth.signOut();

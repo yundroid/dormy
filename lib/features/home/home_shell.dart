@@ -20,11 +20,14 @@ List<_Dest> _destinationsFor(UserRole role) => switch (role) {
         ],
       UserRole.admin => const [
           _Dest('/home', 'Kontroller', Icons.dashboard_outlined, Icons.dashboard),
+          _Dest('/my-students', 'Öğrencilerim', Icons.groups_outlined, Icons.groups),
+          _Dest('/reports', 'Raporlar', Icons.insights_outlined, Icons.insights),
           _Dest('/admin', 'Yönetim', Icons.admin_panel_settings_outlined, Icons.admin_panel_settings),
           _Dest('/profile', 'Profil', Icons.person_outline, Icons.person),
         ],
       UserRole.teacher => const [
           _Dest('/home', 'Kontroller', Icons.dashboard_outlined, Icons.dashboard),
+          _Dest('/my-students', 'Öğrencilerim', Icons.groups_outlined, Icons.groups),
           _Dest('/profile', 'Profil', Icons.person_outline, Icons.person),
         ],
     };

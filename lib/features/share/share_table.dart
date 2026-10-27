@@ -110,7 +110,11 @@ class _SharePreviewPageState extends State<SharePreviewPage> {
 
   @override
   Widget build(BuildContext context) {
-    final students = [for (final r in t.rows) if (r.studentId != null) (id: r.studentId!, name: r.cells[t.nameColumn])];
+    final students = [
+      if (t.nameColumn >= 0)
+        for (final r in t.rows)
+          if (r.studentId != null) (id: r.studentId!, name: r.cells[t.nameColumn]),
+    ];
     return Scaffold(
       appBar: AppBar(title: const Text('Paylaş')),
       bottomNavigationBar: SafeArea(
@@ -147,6 +151,7 @@ class _SharePreviewPageState extends State<SharePreviewPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (students.isNotEmpty) ...[
                 Text('İsim gösterimi', style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 8),
                 SegmentedButton<NameMode>(
@@ -164,6 +169,7 @@ class _SharePreviewPageState extends State<SharePreviewPage> {
                   ),
                 ],
                 const SizedBox(height: 16),
+                ],
                 Text('Önizleme', style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 8),
                 // Görsel her cihazda aynı (okunabilir) genişlikte çizilir, önizlemede ekrana sığdırılır.

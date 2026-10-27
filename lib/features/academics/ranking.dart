@@ -37,7 +37,7 @@ class Stats {
   final num? min;
 
   factory Stats.of(Iterable<num> values) {
-    final list = values.toList();
+    final list = <num>[...values];
     if (list.isEmpty) return const Stats(count: 0);
     final sum = list.fold<num>(0, (a, b) => a + b);
     return Stats(
