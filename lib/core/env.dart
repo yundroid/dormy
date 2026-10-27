@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// Derleme zamanı yapılandırması:
 /// flutter run --dart-define-from-file=env.json  (bkz. env.example.json)
 class Env {
@@ -13,6 +15,14 @@ class Env {
   /// Davet ve şifre sıfırlama e-postalarındaki bağlantının açılacağı adres
   /// (yayınlanan web uygulamasının adresi). Boşsa Supabase "Site URL" kullanılır.
   static String get authRedirectUrl => cleanValue(_rawRedirect);
+
+  /// Android / iOS'ta e-posta bağlantısının uygulamayı açması için özel adres.
+  /// Supabase → Authentication → URL Configuration → Redirect URLs listesine eklenmelidir.
+  static const mobileRedirectUrl = 'com.dormy.dormy://auth-callback';
+
+  /// E-posta bağlantılarının yönleneceği adres: mobilde uygulamanın kendisi,
+  /// web'de AUTH_REDIRECT_URL (boşsa Supabase Site URL).
+  static String? get authRedirect => kIsWeb ? (authRedirectUrl.isEmpty ? null : authRedirectUrl) : mobileRedirectUrl;
 
   static bool get isConfigured => configError == null;
 

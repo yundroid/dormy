@@ -41,8 +41,10 @@ Gereksinim analizi: [`docs/ANALIZ_RAPORU.md`](docs/ANALIZ_RAPORU.md)
    supabase functions deploy invite-user
    supabase secrets set APP_URL=https://yurt-uygulamaniz.example.com
    ```
-4. **Authentication → URL Configuration**: *Site URL* olarak web uygulamanızın adresini,
-   *Redirect URLs* listesine aynı adresi ekleyin. Davet ve şifre sıfırlama bağlantıları bu adrese yönlenir.
+4. **Authentication → URL Configuration**: *Site URL* olarak web uygulamanızın adresini (web yoksa
+   `com.dormy.dormy://auth-callback`) girin. *Redirect URLs* listesine hem web adresini hem de
+   `com.dormy.dormy://auth-callback` adresini ekleyin. Mobil uygulamadan istenen doğrulama, davet ve şifre
+   sıfırlama bağlantıları telefonda doğrudan uygulamayı açar; web'den istenenler web adresine gider.
 5. **Authentication → Email Templates**: davet / şifre sıfırlama e-postalarını Türkçeleştirebilirsiniz.
 
 ### 2. Sistem yöneticisi hesabı

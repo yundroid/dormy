@@ -122,7 +122,7 @@ class Repo {
     final res = await db.auth.signUp(
       email: email.trim(),
       password: password,
-      emailRedirectTo: _blank(Env.authRedirectUrl),
+      emailRedirectTo: Env.authRedirect,
       data: {
         'signup_type': 'tenant',
         'full_name': fullName.trim(),
@@ -136,7 +136,7 @@ class Repo {
   }
 
   static Future<void> sendPasswordReset(String email) =>
-      db.auth.resetPasswordForEmail(email.trim(), redirectTo: _blank(Env.authRedirectUrl));
+      db.auth.resetPasswordForEmail(email.trim(), redirectTo: Env.authRedirect);
 
   static Future<void> updatePassword(String password) async {
     await db.auth.updateUser(UserAttributes(password: password));
@@ -156,7 +156,7 @@ class Repo {
       'full_name': fullName.trim(),
       'phone': _blank(phone),
       'role': role.name,
-      if (_blank(Env.authRedirectUrl) != null) 'redirect_to': Env.authRedirectUrl,
+      'redirect_to': ?Env.authRedirect,
     });
   }
 

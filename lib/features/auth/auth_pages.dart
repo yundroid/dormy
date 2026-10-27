@@ -102,6 +102,17 @@ class _LoginPageState extends State<LoginPage> {
   String? _error;
   bool _busy = false;
 
+  @override
+  void initState() {
+    super.initState();
+    if (session.linkError != null) {
+      _error = 'E-posta bağlantısı bu cihazda açılamadı veya süresi dolmuş. '
+          'Hesabınız doğrulandıysa e-posta ve şifrenizle giriş yapabilirsiniz; '
+          'değilse "Şifremi unuttum" ile yeni bağlantı isteyin.';
+      session.linkError = null;
+    }
+  }
+
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
     setState(() {

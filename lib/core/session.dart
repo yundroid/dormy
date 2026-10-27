@@ -31,6 +31,9 @@ class SessionController extends ChangeNotifier {
   SessionStatus status = SessionStatus.loading;
   UserContext? _context;
   Object? error;
+
+  /// Açılamayan e-posta bağlantısı hatası (giriş ekranında bir kez gösterilir)
+  Object? linkError;
   bool _recovering = false;
   StreamSubscription<AuthState>? _sub;
 
@@ -54,6 +57,13 @@ class SessionController extends ChangeNotifier {
 
   void start() {
     _sub ??= db.auth.onAuthStateChange.listen(_onAuthChange, onError: (Object e) {
+      // E-posta bağlantısı başka bir cihazda / süresi geçmiş açıldıysa: oturum yoksa
+      // giriş ekranında kalınır (e-posta doğrulaması yine de tamamlanmış olur).
+      if (db.auth.currentSession == null) {
+        linkError = e;
+        _set(SessionStatus.signedOut);
+        return;
+      }
       error = e;
       _set(SessionStatus.error);
     });
