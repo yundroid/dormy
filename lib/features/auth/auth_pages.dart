@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/env.dart';
 import '../../core/errors.dart';
 import '../../core/session.dart';
 import '../../data/repository.dart';
@@ -163,6 +164,12 @@ class _LoginPageState extends State<LoginPage> {
                 'Öğretmen hesapları yurt yöneticisinin daveti ile oluşturulur.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.outline),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Sunucu: ${Env.serverHost}',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.outlineVariant),
               ),
             ],
           ),

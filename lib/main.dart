@@ -11,7 +11,7 @@ Future<void> main() async {
   await initializeDateFormatting('tr_TR');
 
   if (!Env.isConfigured) {
-    runApp(const _MissingConfigApp());
+    runApp(_MissingConfigApp(Env.configError!));
     return;
   }
 
@@ -21,17 +21,19 @@ Future<void> main() async {
 }
 
 class _MissingConfigApp extends StatelessWidget {
-  const _MissingConfigApp();
+  const _MissingConfigApp(this.problem);
+
+  final String problem;
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       home: Scaffold(
         body: Center(
           child: Padding(
-            padding: EdgeInsets.all(24),
+            padding: const EdgeInsets.all(24),
             child: Text(
-              'Supabase yapılandırması eksik.\n\n'
+              'Supabase yapılandırması hatalı.\n\n$problem\n\n'
               'Uygulamayı şu şekilde çalıştırın:\n'
               'flutter run --dart-define-from-file=env.json\n\n'
               'Ayrıntılar için README.md dosyasına bakın.',
