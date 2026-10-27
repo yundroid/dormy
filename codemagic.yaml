@@ -1,0 +1,40 @@
+# Codemagic CI: Android APK derlemesi
+# Gerekli ortam değişkenleri Codemagic arayüzünde "dormy" adlı gruba eklenir:
+#   SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, AUTH_REDIRECT_URL (isteğe bağlı)
+workflows:
+  android-apk:
+    name: Android APK
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      groups:
+        - dormy
+      flutter: stable
+      java: 17
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: claude/magical-sagan-shypx4
+        - pattern: main
+      cancel_previous_builds: true
+    scripts:
+      - name: Ortam değişkenlerini kontrol et
+        script: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "SUPABASE_URL ve SUPABASE_PUBLISHABLE_KEY 'dormy' ortam grubunda tanımlı olmalı"
+            exit 1
+          fi
+      - name: Bağımlılıklar
+        script: flutter pub get
+      - name: Testler
+        script: flutter test
+      - name: APK derle
+        script: |
+          flutter build apk --release \
+            --build-number=$BUILD_NUMBER \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_PUBLISHABLE_KEY="$SUPABASE_PUBLISHABLE_KEY" \
+            --dart-define=AUTH_REDIRECT_URL="${AUTH_REDIRECT_URL:-}"
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
