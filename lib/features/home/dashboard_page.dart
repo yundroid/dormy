@@ -5,23 +5,34 @@ import 'package:go_router/go_router.dart';
 import '../../core/formatters.dart';
 import '../../core/icons.dart';
 import '../../core/session.dart';
+import '../../core/theme.dart';
+import '../../data/dashboard_repository.dart';
 import '../../data/repository.dart';
 import '../../models/models.dart';
 import '../../widgets/common.dart';
+import '../reports/my_students_page.dart';
+import '../reports/report_logic.dart';
 
 /// Kullanıcının doldurabileceği kontrol modülleri.
 class DashboardPage extends ConsumerWidget {
   const DashboardPage({super.key});
+
+  /// Ekran genişliğine göre sütun sayısı; telefonda da en az 2.
+  static int columnsFor(double width) => width >= 900 ? 4 : (width >= 600 ? 3 : 2);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ctx = session.ctx;
     final modules = ref.watch(modulesProvider);
     final kinds = ref.watch(myGroupKindsProvider);
+    final progress = ref.watch(todayProgressProvider).value ?? const <String, ModuleProgress>{};
+    final alerts = ref.watch(attendanceAlertsProvider).value ?? const <AbsenceAlert>[];
 
     Future<void> reload() async {
       ref.invalidate(modulesProvider);
       ref.invalidate(myGroupKindsProvider);
+      ref.invalidate(todayProgressProvider);
+      ref.invalidate(attendanceAlertsProvider);
       await ref.read(modulesProvider.future);
     }
 
@@ -55,6 +66,7 @@ class DashboardPage extends ConsumerWidget {
                       Text('${formatWeekday(ctx.today)}, ${formatDay(ctx.today)}',
                           style: TextStyle(color: Theme.of(context).colorScheme.outline)),
                       const SizedBox(height: 16),
+                      if (alerts.isNotEmpty) ...[_AbsenceAlertCard(alerts: alerts), const SizedBox(height: 16)],
                       if (visible.isEmpty)
                         const EmptyState(
                           icon: Icons.inbox_outlined,
@@ -63,15 +75,16 @@ class DashboardPage extends ConsumerWidget {
                         )
                       else
                         LayoutBuilder(builder: (context, c) {
-                          final cols = c.maxWidth >= 700 ? 3 : (c.maxWidth >= 420 ? 2 : 1);
-                          return GridView.count(
-                            crossAxisCount: cols,
+                          return GridView(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            childAspectRatio: cols == 1 ? 3.6 : 1.9,
-                            children: [for (final m in visible) _ModuleCard(module: m)],
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: columnsFor(c.maxWidth),
+                              mainAxisSpacing: 10,
+                              crossAxisSpacing: 10,
+                              mainAxisExtent: 128,
+                            ),
+                            children: [for (final m in visible) ModuleCard(module: m, progress: progress[m.id])],
                           );
                         }),
                     ],
@@ -86,46 +99,112 @@ class DashboardPage extends ConsumerWidget {
   }
 }
 
-class _ModuleCard extends StatelessWidget {
-  const _ModuleCard({required this.module});
+class ModuleCard extends StatelessWidget {
+  const ModuleCard({super.key, required this.module, this.progress});
 
   final DormModule module;
+  final ModuleProgress? progress;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final p = progress;
+    final done = p?.complete ?? false;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => context.push(module.route),
         child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 24,
-                backgroundColor: theme.colorScheme.primaryContainer,
-                child: Icon(moduleIcon(module.icon), color: theme.colorScheme.onPrimaryContainer),
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: theme.colorScheme.primaryContainer,
+                    child: Icon(moduleIcon(module.icon), size: 20, color: theme.colorScheme.onPrimaryContainer),
+                  ),
+                  const Spacer(),
+                  if (done) const Icon(Icons.check_circle, color: StatusColors.present, size: 20),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(module.name, style: theme.textTheme.titleMedium, maxLines: 2, overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 2),
-                    Text(
-                      module.sessions.length > 1 ? '${module.sessions.length} vakit · ${module.scaleLabel}' : module.scaleLabel,
-                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
-                    ),
-                  ],
+              const SizedBox(height: 8),
+              Text(
+                module.name,
+                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const Spacer(),
+              if (p != null) ...[
+                Text(p.label, style: theme.textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 4),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: p.ratio,
+                    minHeight: 4,
+                    color: done ? StatusColors.present : theme.colorScheme.primary,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                  ),
                 ),
-              ),
-              const Icon(Icons.chevron_right),
+              ] else
+                Text(
+                  module.scaleLabel,
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.outline),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _AbsenceAlertCard extends ConsumerWidget {
+  const _AbsenceAlertCard({required this.alerts});
+
+  final List<AbsenceAlert> alerts;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    final students = {for (final s in ref.watch(studentsProvider).value ?? const <Student>[]) s.id: s};
+    final today = session.ctx.today;
+    return Card(
+      color: scheme.errorContainer,
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        shape: const Border(),
+        leading: Icon(Icons.warning_amber_rounded, color: scheme.onErrorContainer),
+        iconColor: scheme.onErrorContainer,
+        collapsedIconColor: scheme.onErrorContainer,
+        title: Text('Devamsızlık uyarısı', style: TextStyle(color: scheme.onErrorContainer, fontWeight: FontWeight.w600)),
+        subtitle: Text(
+          '${alerts.length} öğrenci son 7 günde 3 veya daha fazla yoklamada "yok"',
+          style: TextStyle(color: scheme.onErrorContainer),
+        ),
+        children: [
+          for (final a in alerts)
+            if (students[a.studentId] case final s?)
+              ListTile(
+                dense: true,
+                title: Text(s.fullName, style: TextStyle(color: scheme.onErrorContainer)),
+                subtitle: Text(
+                  '${a.absentCount} kez yok · son: ${relativeDayLabel(a.lastAbsent, today)}'
+                  '${s.guardianPhone != null ? ' · Veli: ${s.guardianPhone}' : ''}',
+                  style: TextStyle(color: scheme.onErrorContainer),
+                ),
+                trailing: Icon(Icons.chevron_right, color: scheme.onErrorContainer),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => StudentReportPage(student: s, range: rangeFor(RangePreset.last30, today)),
+                )),
+              ),
+        ],
       ),
     );
   }

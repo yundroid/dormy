@@ -23,7 +23,11 @@ Gereksinim analizi: [`docs/ANALIZ_RAPORU.md`](docs/ANALIZ_RAPORU.md)
   veliye paylaşılabilir sıralı listeler (PNG görsel / PDF; tam isim, baş harfler veya tek öğrenci seçenekleri)
 - [x] **Faz 3 – Raporlar:** Öğrencilerim (tarih aralığına göre yüzdelik durum, öğrenci karnesi, veliye paylaşım),
   yönetici raporları (yurt geneli / grup bazlı; genel başarı ve her modül için en iyi / en zayıf öğrenciler, tam sıralama)
-- [ ] **Faz 4:** bildirimler, Excel dışa aktarım, dönem arşivi
+- [ ] **Faz 4:**
+  - [x] Telefonda bağlantının uygulamayı açması (`com.dormy.dormy://auth-callback`)
+  - [x] Kontrol panelinde bugünkü doluluk (vakit / öğrenci) ve devamsızlık uyarısı (son 7 günde 3+ "yok")
+  - [x] Tüm paylaşılabilir listelerde Excel (.xlsx) çıktısı
+  - [ ] Anlık bildirimler (push), dönem arşivi
 
 ## Kurulum
 

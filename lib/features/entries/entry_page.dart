@@ -6,6 +6,7 @@ import '../../core/formatters.dart';
 import '../../core/icons.dart';
 import '../../core/session.dart';
 import '../../core/theme.dart';
+import '../../data/dashboard_repository.dart';
 import '../../data/repository.dart';
 import '../../models/models.dart';
 import '../../widgets/common.dart';
@@ -87,7 +88,11 @@ class _EntryPageState extends ConsumerState<EntryPage> {
       _saving = false;
       if (ok) _changes.clear();
     });
-    if (ok) ref.invalidate(entriesProvider(_key));
+    if (ok) {
+      ref.invalidate(entriesProvider(_key));
+      ref.invalidate(todayProgressProvider);
+      ref.invalidate(attendanceAlertsProvider);
+    }
   }
 
   @override

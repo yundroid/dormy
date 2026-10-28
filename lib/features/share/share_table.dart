@@ -12,6 +12,7 @@ import '../../core/formatters.dart';
 import '../../core/session.dart';
 import '../../widgets/common.dart';
 import '../academics/ranking.dart';
+import 'xlsx.dart';
 
 /// Veliye paylaşılabilir tablo (sıralı sonuç listesi, öğrenci karnesi vb.).
 class ShareTable {
@@ -108,6 +109,31 @@ class _SharePreviewPageState extends State<SharePreviewPage> {
     }
   }
 
+  /// Excel'de de seçilen isim gösterimi uygulanır.
+  Future<void> _shareXlsx() async {
+    setState(() => _busy = true);
+    try {
+      final bytes = buildXlsx(
+        sheetName: t.title,
+        title: [?session.contextOrNull?.tenant?.name, t.title].join(' · '),
+        subtitle: t.subtitle,
+        header: t.columns,
+        rows: t.cells(_mode, _highlight),
+        numericFrom: t.numericFrom,
+      );
+      const mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      await SharePlus.instance.share(ShareParams(
+        files: [XFile.fromData(bytes, mimeType: mime, name: '$_fileBase.xlsx')],
+        fileNameOverrides: ['$_fileBase.xlsx'],
+        title: t.title,
+      ));
+    } catch (e) {
+      if (mounted) showError(context, e);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final students = [
@@ -129,7 +155,15 @@ class _SharePreviewPageState extends State<SharePreviewPage> {
                   label: const Text('PDF'),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _busy ? null : _shareXlsx,
+                  icon: const Icon(Icons.table_chart_outlined),
+                  label: const Text('Excel'),
+                ),
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: FilledButton.icon(
                   onPressed: _busy || (_mode == NameMode.single && _highlight == null) ? null : _sharePng,
