@@ -74,6 +74,9 @@ void main() {
     test('çıkış yapmış kullanıcı girişe yönlenir', () {
       expect(resolveRedirect(status: SessionStatus.signedOut, role: null, location: '/home'), '/login');
       expect(resolveRedirect(status: SessionStatus.signedOut, role: null, location: '/register'), isNull);
+      expect(resolveRedirect(status: SessionStatus.signedOut, role: null, location: '/verify'), isNull);
+      // Kod doğrulanıp oturum açılınca ana sayfaya geçilir
+      expect(resolveRedirect(status: SessionStatus.ready, role: UserRole.admin, location: '/verify'), '/home');
     });
 
     test('davetli kullanıcı şifre belirlemeye yönlenir', () {

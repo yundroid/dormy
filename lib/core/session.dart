@@ -112,6 +112,12 @@ class SessionController extends ChangeNotifier {
     return SessionStatus.ready;
   }
 
+  /// E-postadaki şifre sıfırlama kodu doğrulanmadan hemen önce çağrılır:
+  /// oluşan oturum yeni şifre ekranına yönlendirilir.
+  void beginRecovery() => _recovering = true;
+
+  void cancelRecovery() => _recovering = false;
+
   /// Yeni şifre kaydedildikten sonra
   Future<void> passwordUpdated() async {
     _recovering = false;

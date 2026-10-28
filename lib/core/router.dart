@@ -18,12 +18,13 @@ import '../features/profile/profile_page.dart';
 import '../features/reports/my_students_page.dart';
 import '../features/reports/reports_page.dart';
 import '../features/superadmin/tenants_page.dart';
+import '../data/repository.dart';
 import '../models/models.dart';
 import 'session.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
 
-const _publicPaths = {'/login', '/register', '/forgot-password'};
+const _publicPaths = {'/login', '/register', '/forgot-password', '/verify'};
 
 /// Oturum durumuna ve role göre yönlendirme kuralı (test edilebilir saf fonksiyon).
 String? resolveRedirect({required SessionStatus status, required UserRole? role, required String location}) {
@@ -65,6 +66,13 @@ GoRouter buildRouter() {
       GoRoute(path: '/login', builder: (_, _) => const LoginPage()),
       GoRoute(path: '/register', builder: (_, _) => const RegisterPage()),
       GoRoute(path: '/forgot-password', builder: (_, _) => const ForgotPasswordPage()),
+      GoRoute(
+        path: '/verify',
+        builder: (_, s) => VerifyCodePage(
+          purpose: CodePurpose.values.asNameMap()[s.uri.queryParameters['type']] ?? CodePurpose.invite,
+          email: s.uri.queryParameters['email'],
+        ),
+      ),
       GoRoute(path: '/set-password', builder: (_, _) => const SetPasswordPage()),
       GoRoute(path: '/blocked', builder: (_, _) => const BlockedPage()),
       GoRoute(path: '/module/:id', builder: (_, s) => EntryPage(moduleId: s.pathParameters['id']!)),

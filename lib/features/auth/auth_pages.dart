@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/env.dart';
@@ -30,9 +31,11 @@ class _AuthScaffold extends StatelessWidget {
                   Icon(Icons.apartment_rounded, size: 56, color: theme.colorScheme.primary),
                   const SizedBox(height: 8),
                   Text('Dormy', textAlign: TextAlign.center, style: theme.textTheme.headlineMedium),
-                  Text('Yurt Takip Sistemi',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.outline)),
+                  Text(
+                    'Yurt Takip Sistemi',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.outline),
+                  ),
                   const SizedBox(height: 32),
                   Text(title, style: theme.textTheme.titleLarge),
                   if (subtitle != null) ...[
@@ -106,7 +109,8 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     if (session.linkError != null) {
-      _error = 'E-posta bağlantısı bu cihazda açılamadı veya süresi dolmuş. '
+      _error =
+          'E-posta bağlantısı bu cihazda açılamadı veya süresi dolmuş. '
           'Hesabınız doğrulandıysa e-posta ve şifrenizle giriş yapabilirsiniz; '
           'değilse "Şifremi unuttum" ile yeni bağlantı isteyin.';
       session.linkError = null;
@@ -153,7 +157,10 @@ class _LoginPageState extends State<LoginPage> {
               ),
               Align(
                 alignment: Alignment.centerRight,
-                child: TextButton(onPressed: () => context.push('/forgot-password'), child: const Text('Şifremi unuttum')),
+                child: TextButton(
+                  onPressed: () => context.push('/forgot-password'),
+                  child: const Text('Şifremi unuttum'),
+                ),
               ),
               if (_error != null) ...[
                 Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
@@ -168,9 +175,16 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 24),
               const Divider(),
               const SizedBox(height: 8),
-              Text('Yurdunuzu sisteme kaydetmek mi istiyorsunuz?',
-                  textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyMedium),
+              Text(
+                'Yurdunuzu sisteme kaydetmek mi istiyorsunuz?',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
               TextButton(onPressed: () => context.push('/register'), child: const Text('Hesap oluştur')),
+              TextButton(
+                onPressed: () => context.push('/verify?type=invite'),
+                child: const Text('Davet e-postası aldım, kodu gireceğim'),
+              ),
               Text(
                 'Öğretmen hesapları yurt yöneticisinin daveti ile oluşturulur.',
                 textAlign: TextAlign.center,
@@ -180,7 +194,8 @@ class _LoginPageState extends State<LoginPage> {
               Text(
                 'Sunucu: ${Env.serverHost}',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.outlineVariant),
+                style: Theme.of(context).textTheme.labelSmall
+                    ?.copyWith(color: Theme.of(context).colorScheme.outlineVariant),
               ),
             ],
           ),
@@ -211,7 +226,6 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _kvkk = false;
   bool _busy = false;
   String? _error;
-  bool _done = false;
 
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
@@ -232,7 +246,9 @@ class _RegisterPageState extends State<RegisterPage> {
         city: _city.text,
         phone: _phone.text,
       );
-      if (!signedIn && mounted) setState(() => _done = true);
+      if (!signedIn && mounted) {
+        context.go(Uri(path: '/verify', queryParameters: {'type': 'signup', 'email': _email.text.trim()}).toString());
+      }
     } catch (e) {
       setState(() => _error = friendlyError(e));
     } finally {
@@ -242,24 +258,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_done) {
-      return _AuthScaffold(
-        title: 'Kayıt alındı',
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              '${_email.text.trim()} adresine bir doğrulama e-postası gönderdik. '
-              'E-postadaki bağlantıya tıkladıktan sonra giriş yapabilirsiniz.\n\n'
-              'Hesabınız deneme modunda açılır (3 öğretmen, 3 öğrenci). '
-              'Sistem yöneticisi onayladıktan sonra kotanız genişletilir.',
-            ),
-            const SizedBox(height: 20),
-            FilledButton(onPressed: () => context.go('/login'), child: const Text('Girişe dön')),
-          ],
-        ),
-      );
-    }
     return _AuthScaffold(
       title: 'Yurt Kaydı',
       subtitle: 'Yurdunuzu kaydedin; hesabı oluşturan kişi yurdun yöneticisi olur.',
@@ -349,7 +347,6 @@ class ForgotPasswordPage extends StatefulWidget {
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final _form = GlobalKey<FormState>();
   final _email = TextEditingController();
-  bool _sent = false;
   bool _busy = false;
   String? _error;
 
@@ -361,7 +358,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     });
     try {
       await Repo.sendPasswordReset(_email.text);
-      setState(() => _sent = true);
+      if (mounted) {
+        context.go(Uri(path: '/verify', queryParameters: {'type': 'recovery', 'email': _email.text.trim()}).toString());
+      }
     } catch (e) {
       setState(() => _error = friendlyError(e));
     } finally {
@@ -373,44 +372,34 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   Widget build(BuildContext context) {
     return _AuthScaffold(
       title: 'Şifremi Unuttum',
-      subtitle: _sent ? null : 'E-posta adresinize şifre sıfırlama bağlantısı göndereceğiz.',
-      child: _sent
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text('${_email.text.trim()} adresi kayıtlıysa sıfırlama bağlantısı gönderildi. '
-                    'Gelen kutunuzu (ve gereksiz klasörünü) kontrol edin.'),
-                const SizedBox(height: 20),
-                FilledButton(onPressed: () => context.go('/login'), child: const Text('Girişe dön')),
-              ],
-            )
-          : Form(
-              key: _form,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextFormField(
-                    controller: _email,
-                    keyboardType: TextInputType.emailAddress,
-                    validator: emailValidator,
-                    onFieldSubmitted: (_) => _submit(),
-                    decoration: const InputDecoration(labelText: 'E-posta', prefixIcon: Icon(Icons.mail_outline)),
-                  ),
-                  const SizedBox(height: 16),
-                  if (_error != null) ...[
-                    Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
-                    const SizedBox(height: 12),
-                  ],
-                  FilledButton(
-                    onPressed: _busy ? null : _submit,
-                    child: _busy
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text('Bağlantı Gönder'),
-                  ),
-                  TextButton(onPressed: () => context.go('/login'), child: const Text('Girişe dön')),
-                ],
-              ),
+      subtitle: 'E-posta adresinize şifre sıfırlama kodu göndereceğiz.',
+      child: Form(
+        key: _form,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextFormField(
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              validator: emailValidator,
+              onFieldSubmitted: (_) => _submit(),
+              decoration: const InputDecoration(labelText: 'E-posta', prefixIcon: Icon(Icons.mail_outline)),
             ),
+            const SizedBox(height: 16),
+            if (_error != null) ...[
+              Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              const SizedBox(height: 12),
+            ],
+            FilledButton(
+              onPressed: _busy ? null : _submit,
+              child: _busy
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('Kod Gönder'),
+            ),
+            TextButton(onPressed: () => context.go('/login'), child: const Text('Girişe dön')),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -504,7 +493,11 @@ class BlockedPage extends StatelessWidget {
         children: [
           Text(isError ? friendlyError(session.error ?? 'Bilinmeyen hata') : session.blockedReason),
           const SizedBox(height: 20),
-          OutlinedButton.icon(onPressed: session.refresh, icon: const Icon(Icons.refresh), label: const Text('Tekrar dene')),
+          OutlinedButton.icon(
+            onPressed: session.refresh,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Tekrar dene'),
+          ),
           TextButton(onPressed: session.signOut, child: const Text('Çıkış yap')),
         ],
       ),
@@ -517,4 +510,147 @@ class SplashPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const Scaffold(body: Center(child: CircularProgressIndicator()));
+}
+
+// ---------------------------------------------------------------------------
+
+/// E-postaya gelen doğrulama / şifre sıfırlama / davet kodunu girme ekranı.
+/// E-postadaki bağlantının uygulamayı açamadığı durumlar (Gmail'in kendi
+/// tarayıcısı, farklı cihaz) için asıl yöntem budur.
+class VerifyCodePage extends StatefulWidget {
+  const VerifyCodePage({super.key, required this.purpose, this.email});
+
+  final CodePurpose purpose;
+  final String? email;
+
+  @override
+  State<VerifyCodePage> createState() => _VerifyCodePageState();
+}
+
+class _VerifyCodePageState extends State<VerifyCodePage> {
+  final _form = GlobalKey<FormState>();
+  late final _email = TextEditingController(text: widget.email);
+  final _code = TextEditingController();
+  bool _busy = false;
+  String? _error;
+  String? _info;
+
+  bool get _emailKnown => widget.email != null && widget.email!.isNotEmpty;
+
+  Future<void> _submit() async {
+    if (!_form.currentState!.validate()) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      // Başarılıysa oturum açılır; yönlendirmeyi router yapar.
+      await Repo.verifyEmailCode(email: _email.text, code: _code.text, purpose: widget.purpose);
+    } catch (e) {
+      setState(() => _error = _codeError(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  String _codeError(Object e) {
+    final msg = e.toString().toLowerCase();
+    if (msg.contains('expired') || msg.contains('invalid') || msg.contains('otp')) {
+      return 'Kod hatalı veya süresi dolmuş. Yeni kod isteyip tekrar deneyin.';
+    }
+    return friendlyError(e);
+  }
+
+  Future<void> _resend() async {
+    setState(() {
+      _error = null;
+      _info = null;
+    });
+    try {
+      if (widget.purpose == CodePurpose.signup) {
+        await Repo.resendSignupCode(_email.text);
+      } else {
+        await Repo.sendPasswordReset(_email.text);
+      }
+      setState(() => _info = 'Yeni kod gönderildi. En son gelen e-postadaki kodu kullanın.');
+    } catch (e) {
+      setState(() => _error = friendlyError(e));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final (title, subtitle) = switch (widget.purpose) {
+      CodePurpose.signup => (
+          'E-postanızı doğrulayın',
+          'Kayıt tamamlandı. E-postanıza gelen doğrulama kodunu girin. '
+              'Hesabınız deneme modunda açılır; sistem yöneticisi onayladıktan sonra kotanız genişletilir.',
+        ),
+      CodePurpose.recovery => (
+          'Şifre sıfırlama kodu',
+          'Adres kayıtlıysa e-postanıza bir kod gönderdik. Kodu girdikten sonra yeni şifrenizi belirleyeceksiniz.',
+        ),
+      CodePurpose.invite => (
+          'Davet kodu',
+          'Yöneticinizin gönderdiği davet e-postasındaki kodu ve e-posta adresinizi girin. '
+              'Ardından kendi şifrenizi belirleyeceksiniz.',
+        ),
+    };
+    return _AuthScaffold(
+      title: title,
+      subtitle: subtitle,
+      child: Form(
+        key: _form,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextFormField(
+              controller: _email,
+              readOnly: _emailKnown,
+              keyboardType: TextInputType.emailAddress,
+              validator: emailValidator,
+              decoration: const InputDecoration(labelText: 'E-posta', prefixIcon: Icon(Icons.mail_outline)),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _code,
+              autofocus: _emailKnown,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 24, letterSpacing: 8, fontWeight: FontWeight.w600),
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(10)],
+              autofillHints: const [AutofillHints.oneTimeCode],
+              validator: (v) => (v == null || v.length < 6) ? 'E-postadaki kodu girin' : null,
+              onFieldSubmitted: (_) => _submit(),
+              decoration: const InputDecoration(labelText: 'Kod', hintText: '••••••'),
+            ),
+            const SizedBox(height: 16),
+            if (_error != null) ...[
+              Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              const SizedBox(height: 12),
+            ],
+            if (_info != null) ...[Text(_info!), const SizedBox(height: 12)],
+            FilledButton(
+              onPressed: _busy ? null : _submit,
+              child: _busy
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('Doğrula'),
+            ),
+            if (widget.purpose != CodePurpose.invite)
+              TextButton(onPressed: _resend, child: const Text('Kodu tekrar gönder'))
+            else
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Kod gelmediyse veya süresi dolduysa yöneticinizden daveti tekrar göndermesini isteyin.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            TextButton(onPressed: () => context.go('/login'), child: const Text('Girişe dön')),
+          ],
+        ),
+      ),
+    );
+  }
 }

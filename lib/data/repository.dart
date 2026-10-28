@@ -99,6 +99,9 @@ final tenantAdminsProvider = FutureProvider.autoDispose.family<List<Profile>, St
   return _rows(data).map(Profile.fromJson).toList();
 });
 
+/// E-postaya gelen kodun amacı
+enum CodePurpose { signup, recovery, invite }
+
 // ---------------------------------------------------------------------------
 // Yazma işlemleri
 // ---------------------------------------------------------------------------
@@ -134,6 +137,33 @@ class Repo {
     // E-posta doğrulaması açıksa oturum gelmez.
     return res.session != null;
   }
+
+  /// E-postadaki doğrulama kodunu kontrol eder; başarılıysa oturum açılır.
+  static Future<void> verifyEmailCode({required String email, required String code, required CodePurpose purpose}) async {
+    final e = email.trim(), c = code.replaceAll(RegExp(r'\s'), '');
+    switch (purpose) {
+      case CodePurpose.signup:
+        await db.auth.verifyOTP(email: e, token: c, type: OtpType.signup);
+      case CodePurpose.recovery:
+        session.beginRecovery();
+        try {
+          await db.auth.verifyOTP(email: e, token: c, type: OtpType.recovery);
+        } catch (_) {
+          session.cancelRecovery();
+          rethrow;
+        }
+      case CodePurpose.invite:
+        // "Daveti tekrar gönder" şifre sıfırlama e-postası yollar; o kod da kabul edilir.
+        try {
+          await db.auth.verifyOTP(email: e, token: c, type: OtpType.invite);
+        } on AuthException {
+          await db.auth.verifyOTP(email: e, token: c, type: OtpType.recovery);
+        }
+    }
+  }
+
+  static Future<void> resendSignupCode(String email) =>
+      db.auth.resend(type: OtpType.signup, email: email.trim(), emailRedirectTo: Env.authRedirect);
 
   static Future<void> sendPasswordReset(String email) =>
       db.auth.resetPasswordForEmail(email.trim(), redirectTo: Env.authRedirect);

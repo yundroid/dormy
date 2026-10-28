@@ -49,7 +49,9 @@ Gereksinim analizi: [`docs/ANALIZ_RAPORU.md`](docs/ANALIZ_RAPORU.md)
    `com.dormy.dormy://auth-callback`) girin. *Redirect URLs* listesine hem web adresini hem de
    `com.dormy.dormy://auth-callback` adresini ekleyin. Mobil uygulamadan istenen doğrulama, davet ve şifre
    sıfırlama bağlantıları telefonda doğrudan uygulamayı açar; web'den istenenler web adresine gider.
-5. **Authentication → Email Templates**: davet / şifre sıfırlama e-postalarını Türkçeleştirebilirsiniz.
+5. **Authentication → Emails → Templates**: kayıt, davet ve şifre sıfırlama şablonlarını
+   [`docs/EPOSTA_SABLONLARI.md`](docs/EPOSTA_SABLONLARI.md) içindekilerle değiştirin. E-postalar 6 haneli bir kod içerir;
+   mobilde kullanıcı bu kodu uygulamaya yazar (Gmail gibi uygulamalar bağlantıyla uygulamaya geçişi engelleyebilir).
 
 ### 2. Sistem yöneticisi hesabı
 
