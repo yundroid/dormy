@@ -5,6 +5,7 @@ import '../core/env.dart';
 import '../core/formatters.dart';
 import '../core/session.dart';
 import '../core/supabase.dart';
+import '../features/admin/student_import.dart';
 import '../models/models.dart';
 
 List<Map<String, dynamic>> _rows(Object? data) => (data as List).cast<Map<String, dynamic>>();
@@ -232,6 +233,73 @@ class Repo {
   }
 
   static Future<void> deleteStudent(String id) => db.from('students').delete().eq('id', id);
+
+  /// Excel'den toplu öğrenci ekler. Eklenen öğrenci sayısını döner.
+  /// [createGroups]: plandaki eksik gruplar oluşturulsun mu (hayırsa o öğrenciler grupsuz eklenir).
+  /// [includeSkipped]: "zaten kayıtlı / dosyada tekrar" diye atlanan satırlar da eklensin mi.
+  static Future<int> importStudents(ImportPlan plan, {required bool createGroups, bool includeSkipped = false}) async {
+    final rows = plan.rows.where((r) => r.isValid && (!r.skip || includeSkipped)).toList();
+    if (rows.isEmpty) return 0;
+
+    final groupIds = Map.of(plan.matchedGroups);
+    if (createGroups && plan.newGroups.isNotEmpty) {
+      final created = await db
+          .from('groups')
+          .insert([
+            for (final g in plan.newGroups) {'tenant_id': _tenantId, 'kind': g.kind.name, 'name': g.name},
+          ])
+          .select('id, kind, name');
+      for (final r in (created as List).cast<Map<String, dynamic>>()) {
+        groupIds[(GroupKind.parse(r['kind'] as String), normalizeKey(r['name'] as String))] = r['id'] as String;
+      }
+    }
+
+    final today = isoDate(session.ctx.today);
+    var imported = 0;
+    // Büyük dosyalarda istek boyutunu sınırlamak için parça parça
+    for (var start = 0; start < rows.length; start += 100) {
+      final chunk = rows.sublist(start, (start + 100).clamp(0, rows.length));
+      final inserted = await db
+          .from('students')
+          .insert([
+            for (final r in chunk)
+              {
+                'tenant_id': _tenantId,
+                'first_name': r.firstName,
+                'last_name': r.lastName,
+                'school_grade': r.value(ImportField.schoolGrade),
+                'room_no': r.value(ImportField.roomNo),
+                'phone': r.value(ImportField.phone),
+                'guardian_name': r.value(ImportField.guardianName),
+                'guardian_phone': r.value(ImportField.guardianPhone),
+                'notes': r.value(ImportField.notes),
+                'status': StudentStatus.active.name,
+              },
+          ])
+          .select('id');
+      final ids = [for (final r in (inserted as List).cast<Map<String, dynamic>>()) r['id'] as String];
+
+      // INSERT ... RETURNING satırları ekleme sırasıyla döner
+      final memberships = <Map<String, dynamic>>[];
+      for (var i = 0; i < chunk.length && i < ids.length; i++) {
+        for (final kind in GroupKind.values) {
+          final name = plan.groupNameOf(chunk[i], kind);
+          final groupId = name == null ? null : groupIds[(kind, normalizeKey(name))];
+          if (groupId == null) continue;
+          memberships.add({
+            'tenant_id': _tenantId,
+            'group_id': groupId,
+            'student_id': ids[i],
+            'kind': kind.name,
+            'start_date': today,
+          });
+        }
+      }
+      if (memberships.isNotEmpty) await db.from('group_students').insert(memberships);
+      imported += ids.length;
+    }
+    return imported;
+  }
 
   static Future<void> assignStudentGroup(String studentId, GroupKind kind, String? groupId) =>
       db.rpc('assign_student_group', params: {'p_student': studentId, 'p_kind': kind.name, 'p_group': groupId});

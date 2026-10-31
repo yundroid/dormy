@@ -6,6 +6,7 @@ import '../../core/session.dart';
 import '../../data/repository.dart';
 import '../../models/models.dart';
 import '../../widgets/common.dart';
+import 'student_import_page.dart';
 
 class StudentsPage extends ConsumerStatefulWidget {
   const StudentsPage({super.key});
@@ -32,7 +33,32 @@ class _StudentsPageState extends ConsumerState<StudentsPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Öğrenciler')),
+      appBar: AppBar(
+        title: const Text('Öğrenciler'),
+        actions: [
+          PopupMenuButton<String>(
+            tooltip: 'Excel',
+            icon: const Icon(Icons.table_chart_outlined),
+            onSelected: (v) async {
+              if (v == 'template') {
+                await shareStudentTemplate(context, ref.read(groupsProvider).value ?? const <Group>[]);
+              } else {
+                await pickStudentExcel(context, ref);
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'template',
+                child: ListTile(leading: Icon(Icons.download), title: Text('Excel şablonu indir'), contentPadding: EdgeInsets.zero),
+              ),
+              PopupMenuItem(
+                value: 'import',
+                child: ListTile(leading: Icon(Icons.upload_file), title: Text('Excel\'den toplu yükle'), contentPadding: EdgeInsets.zero),
+              ),
+            ],
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/admin/students/new'),
         icon: const Icon(Icons.person_add_alt_1),

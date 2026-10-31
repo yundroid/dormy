@@ -27,6 +27,8 @@ Gereksinim analizi: [`docs/ANALIZ_RAPORU.md`](docs/ANALIZ_RAPORU.md)
   - [x] Telefonda bağlantının uygulamayı açması (`com.dormy.dormy://auth-callback`)
   - [x] Kontrol panelinde bugünkü doluluk (vakit / öğrenci) ve devamsızlık uyarısı (son 7 günde 3+ "yok")
   - [x] Tüm paylaşılabilir listelerde Excel (.xlsx) çıktısı
+  - [x] Excel'den toplu öğrenci yükleme: şablon indirme, önizleme, Türkçe duyarsız grup eşleştirme,
+    eksik grupları onayla oluşturma, aynı isimli kayıtları atlama, kota kontrolü
   - [ ] Anlık bildirimler (push), dönem arşivi
 
 ## Kurulum
