@@ -63,6 +63,14 @@ Gereksinim analizi: [`docs/ANALIZ_RAPORU.md`](docs/ANALIZ_RAPORU.md)
 select public.promote_superadmin('siz@ornek.com');
 ```
 
+### Demo verileri (isteğe bağlı)
+
+Uygulamayı dolu haliyle görmek için SQL Editor'de `supabase/seed/demo_data.sql` dosyasını çalıştırın.
+"Demo Erkek Öğrenci Yurdu" adında aktif bir yurt, 1 yönetici + 3 öğretmen hesabı (şifre: `Demo1234!`),
+36 öğrenci, etüt/dahili gruplar ve son 4 haftalık yoklama, puan, yazılı, test, deneme ve kitap kayıtları oluşur.
+Hesaplar: `demo.yonetici@example.com`, `demo.ogretmen1@example.com` … `demo.ogretmen3@example.com`.
+Kaldırmak için `supabase/seed/demo_temizle.sql`.
+
 ### 3. Uygulamayı çalıştırma
 
 ```bash

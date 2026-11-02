@@ -19,6 +19,8 @@ end $$;
 create function tests.expect_error(p_sql text, p_like text default null) returns void language plpgsql as $$
 begin
   begin
+    -- ertelenmiş (commit anında yapılan) kontroller de bu ifadede çalışsın
+    set constraints all immediate;
     execute p_sql;
   exception when others then
     if p_like is not null and sqlerrm not ilike '%' || p_like || '%' then
