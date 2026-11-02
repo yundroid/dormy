@@ -380,9 +380,12 @@ class Repo {
       'is_active': ?isActive,
     };
     if (id == null) {
+      // Yeni modül listenin en altına
+      final last = await db.from('modules').select('sort_order').order('sort_order', ascending: false).limit(1).maybeSingle();
       await db.from('modules').insert({
         ...payload,
         'tenant_id': _tenantId,
+        'sort_order': ((last?['sort_order'] as int?) ?? 0) + 10,
         'scope': scope.dbValue,
         'value_type': valueType.dbValue,
         'min_value': valueType == ModuleValueType.score ? minValue : null,
@@ -392,6 +395,10 @@ class Repo {
       await db.from('modules').update(payload).eq('id', id);
     }
   }
+
+  /// Modülleri verilen sırayla kaydeder (kontrol paneli ve raporlar bu sırayı kullanır).
+  static Future<void> reorderModules(List<String> idsInOrder) =>
+      db.rpc('reorder_modules', params: {'p_ids': idsInOrder});
 
   static Future<void> setModuleActive(String id, bool active) =>
       db.from('modules').update({'is_active': active}).eq('id', id);

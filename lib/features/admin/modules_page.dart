@@ -8,11 +8,31 @@ import '../../data/repository.dart';
 import '../../models/models.dart';
 import '../../widgets/common.dart';
 
-class ModulesPage extends ConsumerWidget {
+class ModulesPage extends ConsumerStatefulWidget {
   const ModulesPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ModulesPage> createState() => _ModulesPageState();
+}
+
+class _ModulesPageState extends ConsumerState<ModulesPage> {
+  /// Kaydedilirken ekranda gösterilen sıra (sunucu yanıtını beklemeden)
+  List<DormModule>? _pending;
+
+  /// [newIndex]: öğe çıkarıldıktan sonraki hedef konum (onReorderItem bunu verir)
+  Future<void> _reorder(List<DormModule> current, int oldIndex, int newIndex) async {
+    final list = [...current];
+    final moved = list.removeAt(oldIndex);
+    list.insert(newIndex, moved);
+    setState(() => _pending = list);
+    await runAction(context, () => Repo.reorderModules([for (final m in list) m.id]));
+    ref.invalidate(modulesProvider);
+    await ref.read(modulesProvider.future).catchError((_) => const <DormModule>[]);
+    if (mounted) setState(() => _pending = null);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final modulesAsync = ref.watch(modulesProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Kontrol Modülleri')),
@@ -24,33 +44,28 @@ class ModulesPage extends ConsumerWidget {
       body: AsyncView(
         value: modulesAsync,
         onRetry: () => ref.invalidate(modulesProvider),
-        builder: (modules) {
-          final system = modules.where((m) => m.isSystem).toList();
-          final custom = modules.where((m) => !m.isSystem).toList();
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-            children: [
-              ContentWidth(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text('Varsayılan modüller', style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 8),
-                    Card(child: Column(children: [for (final m in system) _ModuleTile(module: m)])),
-                    const SizedBox(height: 20),
-                    Text('Yurdunuza özel modüller', style: Theme.of(context).textTheme.titleMedium),
-                    const SizedBox(height: 4),
-                    Text('Örn. defter kontrolü, temizlik kontrolü. Sadece sizin yurdunuzda görünür.',
-                        style: Theme.of(context).textTheme.bodySmall),
-                    const SizedBox(height: 8),
-                    if (custom.isEmpty)
-                      const Card(child: ListTile(title: Text('Henüz özel modül eklenmemiş')))
-                    else
-                      Card(child: Column(children: [for (final m in custom) _ModuleTile(module: m)])),
-                  ],
+        builder: (loaded) {
+          final modules = _pending ?? loaded;
+          return ContentWidth(
+            child: ReorderableListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+              buildDefaultDragHandles: false,
+              header: Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(
+                  'Sağdaki tutamaçtan sürükleyerek sırayı değiştirin; kontrol paneli ve raporlar bu sırayı kullanır. '
+                  'Yurdunuza özel modüller (örn. defter, temizlik kontrolü) sadece sizin yurdunuzda görünür.',
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
-            ],
+              itemCount: modules.length,
+              onReorderItem: (o, n) => _reorder(modules, o, n),
+              itemBuilder: (context, i) => Padding(
+                key: ValueKey(modules[i].id),
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Card(child: _ModuleTile(module: modules[i], index: i)),
+              ),
+            ),
           );
         },
       ),
@@ -59,26 +74,50 @@ class ModulesPage extends ConsumerWidget {
 }
 
 class _ModuleTile extends ConsumerWidget {
-  const _ModuleTile({required this.module});
+  const _ModuleTile({required this.module, required this.index});
 
   final DormModule module;
+  final int index;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ListTile(
+      contentPadding: const EdgeInsets.only(left: 16, right: 4),
       leading: Icon(moduleIcon(module.icon)),
-      title: Text(module.name),
-      subtitle: Text('${module.scope.label}\n${module.scaleLabel}'
-          '${module.sessions.length > 1 ? ' · ${module.sessions.join(', ')}' : ''}'),
+      title: Text(module.name, overflow: TextOverflow.ellipsis),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!module.isSystem)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 2),
+              child: StatusBadge(label: 'Yurda özel', color: Colors.indigo),
+            ),
+          Text('${module.scope.label}\n${module.scaleLabel}'
+              '${module.sessions.length > 1 ? ' · ${module.sessions.join(', ')}' : ''}'),
+        ],
+      ),
       isThreeLine: true,
       onTap: () => context.push('/admin/modules/${module.id}'),
-      trailing: Switch(
-        value: module.isActive,
-        onChanged: (v) async {
-          await runAction(context, () => Repo.setModuleActive(module.id, v),
-              success: v ? '${module.name} açıldı' : '${module.name} kapatıldı');
-          ref.invalidate(modulesProvider);
-        },
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Switch(
+            value: module.isActive,
+            onChanged: (v) async {
+              await runAction(context, () => Repo.setModuleActive(module.id, v),
+                  success: v ? '${module.name} açıldı' : '${module.name} kapatıldı');
+              ref.invalidate(modulesProvider);
+            },
+          ),
+          ReorderableDragStartListener(
+            index: index,
+            child: const Padding(
+              padding: EdgeInsets.all(8),
+              child: Icon(Icons.drag_handle),
+            ),
+          ),
+        ],
       ),
     );
   }
