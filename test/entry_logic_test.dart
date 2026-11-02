@@ -99,7 +99,8 @@ void main() {
       expect(resolveRedirect(status: SessionStatus.ready, role: UserRole.superadmin, location: '/home'), '/tenants');
       expect(resolveRedirect(status: SessionStatus.ready, role: UserRole.superadmin, location: '/admin'), '/tenants');
       expect(resolveRedirect(status: SessionStatus.ready, role: UserRole.superadmin, location: '/exams/1'), '/tenants');
-      expect(resolveRedirect(status: SessionStatus.ready, role: UserRole.superadmin, location: '/profile'), isNull);
+      expect(resolveRedirect(status: SessionStatus.ready, role: UserRole.superadmin, location: '/settings'), isNull);
+      expect(resolveRedirect(status: SessionStatus.ready, role: UserRole.superadmin, location: '/program'), '/tenants');
     });
 
     test('öğretmen akademik modüllere girer', () {

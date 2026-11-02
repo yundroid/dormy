@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/session.dart';
 import '../../data/repository.dart';
 import '../../widgets/common.dart';
 import '../../widgets/person_dialogs.dart';
 
-class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+/// Ayarlar: profil, şifre, (yönetici için) yönetim paneli ve çıkış.
+class SettingsPage extends StatelessWidget {
+  const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +19,7 @@ class ProfilePage extends StatelessWidget {
         if (c == null) return const Scaffold(body: SizedBox.shrink());
         final p = c.profile;
         return Scaffold(
-          appBar: AppBar(title: const Text('Profil')),
+          appBar: AppBar(title: const Text('Ayarlar')),
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -42,7 +44,39 @@ class ProfilePage extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (c.isAdmin) ...[
+                      const SizedBox(height: 12),
+                      _SectionLabel('Yurt yönetimi'),
+                      Card(
+                        child: Column(
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.admin_panel_settings_outlined),
+                              title: const Text('Yönetim Paneli'),
+                              subtitle: const Text('Öğretmenler, öğrenciler, gruplar, dersler, modüller'),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () => context.push('/admin'),
+                            ),
+                            const Divider(height: 1),
+                            ListTile(
+                              leading: const Icon(Icons.event_note_outlined),
+                              title: const Text('Günlük programı düzenle'),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () => context.go('/program'),
+                            ),
+                            const Divider(height: 1),
+                            ListTile(
+                              leading: const Icon(Icons.apartment_outlined),
+                              title: const Text('Yurt bilgileri'),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () => context.push('/admin/tenant'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
+                    _SectionLabel('Hesap'),
                     Card(
                       child: Column(
                         children: [
@@ -73,6 +107,18 @@ class ProfilePage extends StatelessWidget {
       },
     );
   }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(left: 4, bottom: 6),
+        child: Text(text, style: Theme.of(context).textTheme.titleSmall),
+      );
 }
 
 class _ChangePasswordDialog extends StatefulWidget {

@@ -17,7 +17,7 @@ String? _blank(String? s) => (s == null || s.trim().isEmpty) ? null : s.trim();
 // ---------------------------------------------------------------------------
 
 final modulesProvider = FutureProvider<List<DormModule>>((ref) async {
-  final data = await db.from('modules').select().order('sort_order').order('name');
+  final data = await db.from('modules').select().order('sort_order', ascending: true).order('name', ascending: true);
   return _rows(data).map(DormModule.fromJson).toList();
 });
 
@@ -49,18 +49,18 @@ final staffProvider = FutureProvider<List<Profile>>((ref) async {
       .from('profiles')
       .select()
       .eq('tenant_id', session.ctx.tenantId)
-      .order('role')
-      .order('full_name');
+      .order('role', ascending: true)
+      .order('full_name', ascending: true);
   return _rows(data).map(Profile.fromJson).toList();
 });
 
 final studentsProvider = FutureProvider<List<Student>>((ref) async {
-  final data = await db.from('students').select().order('first_name').order('last_name');
+  final data = await db.from('students').select().order('first_name', ascending: true).order('last_name', ascending: true);
   return _rows(data).map(Student.fromJson).toList();
 });
 
 final groupsProvider = FutureProvider<List<Group>>((ref) async {
-  final data = await db.from('groups').select().order('name');
+  final data = await db.from('groups').select().order('name', ascending: true);
   return _rows(data).map(Group.fromJson).toList();
 });
 
@@ -84,8 +84,8 @@ final subjectsProvider = FutureProvider<List<Subject>>((ref) async {
   final data = await db
       .from('subjects')
       .select('id, name, sort_order, topics(id, subject_id, name, sort_order)')
-      .order('sort_order')
-      .order('name');
+      .order('sort_order', ascending: true)
+      .order('name', ascending: true);
   return _rows(data).map(Subject.fromJson).toList();
 });
 
@@ -96,7 +96,7 @@ final tenantOverviewProvider = FutureProvider<List<TenantOverview>>((ref) async 
 });
 
 final tenantAdminsProvider = FutureProvider.autoDispose.family<List<Profile>, String>((ref, tenantId) async {
-  final data = await db.from('profiles').select().eq('tenant_id', tenantId).eq('role', 'admin').order('full_name');
+  final data = await db.from('profiles').select().eq('tenant_id', tenantId).eq('role', 'admin').order('full_name', ascending: true);
   return _rows(data).map(Profile.fromJson).toList();
 });
 

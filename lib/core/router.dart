@@ -14,9 +14,10 @@ import '../features/auth/auth_pages.dart';
 import '../features/entries/entry_page.dart';
 import '../features/home/dashboard_page.dart';
 import '../features/home/home_shell.dart';
-import '../features/profile/profile_page.dart';
 import '../features/reports/my_students_page.dart';
 import '../features/reports/reports_page.dart';
+import '../features/schedule/schedule_page.dart';
+import '../features/settings/settings_page.dart';
 import '../features/superadmin/tenants_page.dart';
 import '../data/repository.dart';
 import '../models/models.dart';
@@ -46,7 +47,7 @@ String? resolveRedirect({required SessionStatus status, required UserRole? role,
       if (location.startsWith('/tenants') && role != UserRole.superadmin) return home;
       if ((location.startsWith('/admin') || location.startsWith('/reports')) && role != UserRole.admin) return home;
       // Sistem yöneticisi yurt verisine erişmez: sadece yurtlar ve profil
-      if (role == UserRole.superadmin && !location.startsWith('/tenants') && !location.startsWith('/profile')) return home;
+      if (role == UserRole.superadmin && !location.startsWith('/tenants') && !location.startsWith('/settings')) return home;
       return null;
   }
 }
@@ -135,7 +136,10 @@ GoRouter buildRouter() {
               GoRoute(parentNavigatorKey: _rootKey, path: ':id', builder: (_, s) => TenantDetailPage(tenantId: s.pathParameters['id']!)),
             ],
           ),
-          GoRoute(path: '/profile', builder: (_, _) => const ProfilePage()),
+          GoRoute(path: '/program', builder: (_, _) => const SchedulePage()),
+          GoRoute(path: '/settings', builder: (_, _) => const SettingsPage()),
+          // Eski adres
+          GoRoute(path: '/profile', redirect: (_, _) => '/settings'),
         ],
       ),
     ],

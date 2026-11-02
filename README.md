@@ -29,6 +29,9 @@ Gereksinim analizi: [`docs/ANALIZ_RAPORU.md`](docs/ANALIZ_RAPORU.md)
   - [x] Tüm paylaşılabilir listelerde Excel (.xlsx) çıktısı
   - [x] Excel'den toplu öğrenci yükleme: şablon indirme, önizleme, Türkçe duyarsız grup eşleştirme,
     eksik grupları onayla oluşturma, aynı isimli kayıtları atlama, kota kontrolü
+  - [x] Günlük program: yönetici başlangıç–bitiş–program tablosunu gün gün (hafta içi / hafta sonu) oluşturur,
+    öğretmenler görüntüler; o an süren ve sıradaki etkinlik vurgulanır, PNG/PDF/Excel paylaşılabilir
+  - [x] Alt çubuk: ortada Günlük Program; Profil → Ayarlar, Yönetim Paneli Ayarlar içinde
   - [ ] Anlık bildirimler (push), dönem arşivi
 
 ## Kurulum

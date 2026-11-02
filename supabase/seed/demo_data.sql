@@ -266,6 +266,23 @@ begin
                 and id not in (select book_id from book_assignments where student_id = s.id)
                 order by md5(s.id::text || author) limit 1) b on true;
 
+  -- ---- Günlük program (hafta içi / hafta sonu)
+  insert into schedule_items (tenant_id, starts_at, ends_at, title, note, days) values
+    (v_tenant, '06:30', '07:00', 'Kalkış, sabah namazı ve sabah yoklaması', null, '{1,2,3,4,5,6,7}'),
+    (v_tenant, '07:00', '07:30', 'Kahvaltı', null, '{1,2,3,4,5}'),
+    (v_tenant, '07:30', '07:45', 'Yatak-dolap kontrolü', 'Odalar kontrol edilmeden çıkış yapılmaz', '{1,2,3,4,5,6,7}'),
+    (v_tenant, '07:45', '15:30', 'Okul', null, '{1,2,3,4,5}'),
+    (v_tenant, '13:00', '13:30', 'Öğle yoklaması', null, '{1,2,3,4,5,6,7}'),
+    (v_tenant, '16:00', '17:30', 'Dahili ders', null, '{1,2,3,4,5}'),
+    (v_tenant, '17:30', '18:30', 'Serbest zaman / spor', null, '{1,2,3,4,5}'),
+    (v_tenant, '18:30', '19:15', 'Akşam yemeği ve akşam yoklaması', null, '{1,2,3,4,5,6,7}'),
+    (v_tenant, '19:15', '21:30', 'Akşam etüdü', 'Telefonlar etüt süresince teslim edilir', '{1,2,3,4,7}'),
+    (v_tenant, '21:30', '22:00', 'Yatsı yoklaması', null, '{1,2,3,4,5,6,7}'),
+    (v_tenant, '22:30', '23:00', 'Yatış', null, '{1,2,3,4,5,6,7}'),
+    (v_tenant, '08:00', '09:00', 'Kahvaltı', null, '{6,7}'),
+    (v_tenant, '09:30', '12:00', 'Hafta sonu etüdü / deneme sınavı', null, '{6}'),
+    (v_tenant, '14:00', '18:00', 'İzinli çıkış', 'Velisinden izni olan öğrenciler', '{6,7}');
+
   raise notice 'Demo yurt oluşturuldu: % öğrenci, % kayıt.',
     (select count(*) from students where tenant_id = v_tenant),
     (select count(*) from entries where tenant_id = v_tenant);

@@ -54,7 +54,7 @@ final assessmentResultsProvider = FutureProvider.autoDispose.family<List<Assessm
 
 // ---- Kitaplar
 final booksProvider = FutureProvider<List<Book>>((ref) async {
-  final data = await db.from('books').select('id, title, author, page_count, created_by').order('title');
+  final data = await db.from('books').select('id, title, author, page_count, created_by').order('title', ascending: true);
   return _rows(data).map(Book.fromJson).toList();
 });
 

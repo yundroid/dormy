@@ -16,6 +16,7 @@ select tests.eq((select count(*) from exams where tenant_id = :'ta'), 9::bigint,
 select tests.eq((select count(*) from assessments where tenant_id = :'ta' and kind = 'test'), 12::bigint, '12 test');
 select tests.eq((select count(*) from assessments where tenant_id = :'ta' and kind = 'trial'), 4::bigint, '4 deneme');
 select tests.eq((select count(*) from book_assignments where tenant_id = :'ta' and status = 'reading'), 36::bigint, 'herkes bir kitap okuyor');
+select tests.eq((select count(*) from schedule_items where tenant_id = :'ta' and 1 = any(days)), 11::bigint, 'pazartesi programı');
 
 -- Öğretmen gözünden
 select tests.login('demo.ogretmen1@example.com');
